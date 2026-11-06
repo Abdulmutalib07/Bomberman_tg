@@ -29,7 +29,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
 GAME_HTML_PATH = Path(__file__).parent / "index.html"
 
 # Если вы хотите запускать игру через WebApp по ссылке (например GitHub Pages или свой домен):
-WEBAPP_URL = os.getenv("WEBAPP_URL", "")
+WEBAPP_URL = os.getenv("WEBAPP_URL", "https://abdulmutalib07.github.io/Bomberman_tg/")
 
 dp = Dispatcher()
 
