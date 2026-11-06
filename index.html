@@ -782,8 +782,22 @@ function render(){
   ctx.restore();
 }
 
-function loop(){
-  update();
+let lastFrameTime = performance.now();
+const FIXED_STEP = 1000 / 60; // Exact 60 FPS physics tick on 60Hz, 90Hz, 120Hz screens
+let lag = 0;
+
+function loop(currentTime){
+  if(!currentTime) currentTime = performance.now();
+  let elapsed = currentTime - lastFrameTime;
+  if(elapsed > 200) elapsed = 200; // Prevent spiral of death on backgrounding
+  lastFrameTime = currentTime;
+  lag += elapsed;
+
+  while(lag >= FIXED_STEP){
+    update();
+    lag -= FIXED_STEP;
+  }
+
   render();
   requestAnimationFrame(loop);
 }
