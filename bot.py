@@ -23,7 +23,7 @@ from aiogram.types import (
 )
 
 # Токен вашего бота от @BotFather (можно передать в BOT_TOKEN в переменных окружения)
-BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "9020300503:AAFxQka3X3BhsgeWeg_hv4DFVsdhhVc6TT0")
 
 # Путь к файлу игры
 GAME_HTML_PATH = Path(__file__).parent / "index.html"

@@ -8,10 +8,10 @@
 *{box-sizing:border-box;margin:0;padding:0;user-select:none;-webkit-user-select:none;touch-action:manipulation}
 body{background:#060814;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;overflow:hidden}
 #game-app{position:relative;width:100%;max-width:440px;background:#0d1124;border-radius:14px;box-shadow:0 0 25px rgba(0,240,255,0.15),0 8px 30px rgba(0,0,0,0.8);border:1px solid #1e2952;overflow:hidden;display:flex;flex-direction:column}
-#top-hud{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:#080b18;border-bottom:1px solid #1a2344;font-size:11px;font-weight:700}
-.stat{display:flex;align-items:center;gap:3px}
-.neon-val{color:#00f0ff;font-family:monospace;font-size:13px;text-shadow:0 0 6px rgba(0,240,255,0.6)}
-#mute-btn{background:#161c38;border:1px solid #2a3563;color:#fff;border-radius:6px;padding:2px 6px;font-size:11px;cursor:pointer}
+#top-hud{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#080b18;border-bottom:1px solid #1a2344;font-size:11px;font-weight:700}
+.stat{display:flex;align-items:center;gap:2px}
+.neon-val{color:#00f0ff;font-family:monospace;font-size:12px;text-shadow:0 0 6px rgba(0,240,255,0.6)}
+#mute-btn{background:#161c38;border:1px solid #2a3563;color:#fff;border-radius:6px;padding:2px 5px;font-size:11px;cursor:pointer}
 #viewport-wrap{position:relative;width:100%;aspect-ratio:13/11;background:#050711}
 canvas{width:100%;height:100%;display:block}
 #controls{display:flex;justify-content:space-between;align-items:center;padding:8px 14px 12px;background:#090d1f;border-top:1px solid #161c38}
@@ -24,8 +24,8 @@ canvas{width:100%;height:100%;display:block}
 #btn-bomb:active{transform:scale(0.92);filter:brightness(1.3)}
 #overlay{position:absolute;inset:0;background:rgba(5,7,17,0.88);backdrop-filter:blur(4px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:20px;text-align:center}
 #overlay.hidden{display:none}
-#overlay h1{font-size:24px;color:#00f0ff;text-shadow:0 0 10px rgba(0,240,255,0.7);letter-spacing:2px}
-#overlay p{font-size:13px;color:#94a3b8;line-height:1.4;max-width:300px}
+#overlay h1{font-size:22px;color:#00f0ff;text-shadow:0 0 10px rgba(0,240,255,0.7);letter-spacing:1px}
+#overlay p{font-size:12px;color:#94a3b8;line-height:1.4;max-width:300px}
 .btn-action{background:linear-gradient(135deg,#00f0ff,#0077ff);border:none;color:#050711;font-weight:900;padding:10px 24px;font-size:14px;border-radius:8px;cursor:pointer;box-shadow:0 0 15px rgba(0,240,255,0.5);letter-spacing:1px}
 .btn-action:active{transform:scale(0.95)}
 </style>
@@ -33,10 +33,11 @@ canvas{width:100%;height:100%;display:block}
 <body>
 <div id="game-app">
   <div id="top-hud">
-    <div class="stat">⚡ <span id="lives-val" class="neon-val">3</span></div>
+    <div class="stat">❤️ <span id="lives-val" class="neon-val">3</span></div>
+    <div class="stat">💣 <span id="bomb-val" class="neon-val">1</span></div>
+    <div class="stat">🔥 <span id="range-val" class="neon-val">1</span></div>
     <div class="stat">PTS <span id="score-val" class="neon-val">0</span></div>
-    <div class="stat">HI <span id="hi-val" class="neon-val">0</span></div>
-    <div class="stat">ZONE <span id="lvl-val" class="neon-val">1</span></div>
+    <div class="stat">Z <span id="lvl-val" class="neon-val">1</span></div>
     <div class="stat">⏱ <span id="time-val" class="neon-val">150</span></div>
     <button id="mute-btn">🔊</button>
   </div>
@@ -44,7 +45,7 @@ canvas{width:100%;height:100%;display:block}
     <canvas id="cv" width="520" height="440"></canvas>
     <div id="overlay">
       <h1 id="ov-title">CYBER BOMBER</h1>
-      <p id="ov-desc">Уничтожайте защитные барьеры, устраните вражеских дронов и войдите в открывшийся квантовый портал!</p>
+      <p id="ov-desc">Уничтожайте защитные барьеры, собирайте бонусы и зачищайте секторы от вражеских дронов!</p>
       <button id="start-btn" class="btn-action">СТАРТ</button>
     </div>
   </div>
@@ -107,17 +108,6 @@ function sfx(name){
   }
 }
 
-// --- CONSTANTS & MAP ---
-const COLS=13, ROWS=11, TILE=40;
-const T_EMPTY=0, T_PILLAR=1, T_BLOCK=2;
-const PU_BOMB=1, PU_FIRE=2, PU_SPEED=3, PU_SHIELD=4;
-
-const cv = document.getElementById('cv');
-const ctx = cv.getContext('2d');
-let grid = [], powerups = [], bombs = [], flames = [], particles = [], enemies = [], floatTexts = [];
-let portal = {x: 11, y: 9, active: false};
-let screenShake = 0;
-
 // Native Telegram WebApp & Haptic Bridge
 const tgApp = window.Telegram?.WebApp;
 if(tgApp){ try { tgApp.ready(); tgApp.expand(); } catch(e){} }
@@ -139,10 +129,31 @@ function haptic(type){
   }catch(e){}
 }
 
+// --- CONSTANTS & MAP ---
+const COLS=13, ROWS=11, TILE=40;
+const T_EMPTY=0, T_PILLAR=1, T_BLOCK=2;
+const PU_BOMB=1, PU_FIRE=2, PU_SPEED=3, PU_SHIELD=4;
+
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let grid = [], powerups = [], bombs = [], flames = [], particles = [], enemies = [], floatTexts = [];
+let portal = {x: 11, y: 9, active: false};
+let screenShake = 0;
+let livesAtRoundStart = 3;
+
 let player = {
   x:1, y:1, px:40, py:40,
-  speed:2.3, bombsMax:1, bombsPlaced:0, range:1, lives:3,
-  invincible:0, alive:true, dir:'down', hasShield:false
+  speed:2.3,
+  baseBombs:1,
+  roundExtraBombs:0,
+  bombsMax:1,
+  bombsPlaced:0,
+  range:1,
+  lives:3,
+  invincible:0,
+  alive:true,
+  dir:'down',
+  hasShield:false
 };
 
 let gameState = 'MENU', level = 1, score = 0, highScore = 0, timeLeft = 150, timerId = null;
@@ -151,8 +162,9 @@ try { highScore = parseInt(localStorage.getItem('cb_hi') || '0', 10); } catch(e)
 
 // HUD Elements
 const livesEl = document.getElementById('lives-val');
+const bombEl = document.getElementById('bomb-val');
+const rangeEl = document.getElementById('range-val');
 const scoreEl = document.getElementById('score-val');
-const hiEl = document.getElementById('hi-val');
 const lvlEl = document.getElementById('lvl-val');
 const timeEl = document.getElementById('time-val');
 const overlay = document.getElementById('overlay');
@@ -164,25 +176,31 @@ const muteBtn = document.getElementById('mute-btn');
 muteBtn.onclick = () => { initAudio(); soundOn = !soundOn; muteBtn.textContent = soundOn ? '🔊' : '🔇'; };
 
 function updateHUD(){
+  player.bombsMax = player.baseBombs + player.roundExtraBombs;
   livesEl.textContent = player.lives;
+  bombEl.textContent = player.bombsMax;
+  rangeEl.textContent = player.range;
   scoreEl.textContent = score;
   if(score > highScore){
     highScore = score;
     try { localStorage.setItem('cb_hi', highScore.toString()); } catch(e){}
   }
-  hiEl.textContent = highScore;
   lvlEl.textContent = level;
   timeEl.textContent = timeLeft;
 }
 
 function addFloatText(x, y, text, color='#00f0ff'){
-  floatTexts.push({x, y, text, color, life:28, maxLife:28});
+  floatTexts.push({x, y, text, color, life:32, maxLife:32});
 }
 
 // Level Setup
 function setupLevel(lvl){
   grid = []; powerups = []; bombs = []; flames = []; particles = []; enemies = []; floatTexts = [];
-  player.bombsPlaced = 0; player.px = TILE; player.py = TILE;
+  
+  // Extra bombs from destroyed blocks expire at start of next round
+  player.roundExtraBombs = 0;
+  player.bombsPlaced = 0;
+  player.px = TILE; player.py = TILE;
   player.x = 1; player.y = 1; player.alive = true; player.invincible = 90;
   portal.active = false; portal.x = COLS-2; portal.y = ROWS-2;
   screenShake = 0;
@@ -198,14 +216,20 @@ function setupLevel(lvl){
 
   const safe = (c,r) => (c<=2 && r<=2) || (c>=COLS-3 && r>=ROWS-3);
 
-  // Fill destructible energy blocks
+  // Fill destructible energy blocks with frequent powerup drops (55% chance)
+  let blockCount = 0;
   for(let r=1; r<ROWS-1; r++){
     for(let c=1; c<COLS-1; c++){
       if(grid[r][c] === T_EMPTY && !safe(c,r)){
-        if(Math.random() < 0.44){
+        if(Math.random() < 0.46){
           grid[r][c] = T_BLOCK;
-          if(Math.random() < 0.35){
-            const type = [PU_BOMB, PU_FIRE, PU_SPEED, PU_SHIELD][Math.floor(Math.random()*4)];
+          blockCount++;
+          // First few blocks guaranteed to drop extra bomb, others 55% chance
+          if(blockCount <= 2){
+            powerups.push({x:c, y:r, type:PU_BOMB, revealed:false});
+          } else if(Math.random() < 0.55){
+            const types = [PU_BOMB, PU_BOMB, PU_FIRE, PU_SPEED, PU_SHIELD];
+            const type = types[Math.floor(Math.random()*types.length)];
             powerups.push({x:c, y:r, type, revealed:false});
           }
         }
@@ -220,7 +244,7 @@ function setupLevel(lvl){
     const sp = spawns[i % spawns.length];
     enemies.push({
       px: sp.c * TILE, py: sp.r * TILE,
-      speed: 1.1 + Math.min(lvl * 0.15, 1.1),
+      speed: 1.1 + Math.min(lvl * 0.14, 1.1),
       dir: ['up','down','left','right'][Math.floor(Math.random()*4)],
       type: (i % 2 === 0) ? 'stalker' : 'phasing',
       cd: 0
@@ -228,6 +252,7 @@ function setupLevel(lvl){
   }
 
   timeLeft = Math.max(90, 160 - lvl * 10);
+  livesAtRoundStart = player.lives;
   updateHUD();
 }
 
@@ -307,14 +332,17 @@ function slideMove(cx, cy, dx, dy, spd, rad){
 
 // --- BOMBS & EXPLOSIONS ---
 function dropBomb(){
-  if(gameState !== 'PLAY' || !player.alive || player.bombsPlaced >= player.bombsMax) return;
+  if(gameState !== 'PLAY' || !player.alive) return;
+  player.bombsMax = player.baseBombs + player.roundExtraBombs;
+  if(player.bombsPlaced >= player.bombsMax) return;
+
   const cx = Math.round(player.px / TILE), cy = Math.round(player.py / TILE);
   if(bombs.some(b => b.x === cx && b.y === cy)) return;
 
   bombs.push({x:cx, y:cy, timer:130, range:player.range});
   player.bombsPlaced++;
   sfx('bomb');
-  haptic(18);
+  haptic('light');
 }
 
 function detonate(idx){
@@ -323,7 +351,7 @@ function detonate(idx){
   player.bombsPlaced = Math.max(0, player.bombsPlaced - 1);
   sfx('boom');
   screenShake = 11;
-  haptic(45);
+  haptic('heavy');
 
   flames.push({x:b.x, y:b.y, timer:28});
   addParticles(b.x*TILE+TILE/2, b.y*TILE+TILE/2, '#00f0ff', 12);
@@ -396,12 +424,22 @@ function update(){
     for(let i=powerups.length-1; i>=0; i--){
       const pu = powerups[i];
       if(pu.revealed && Math.hypot(player.px - pu.x*TILE, player.py - pu.y*TILE) < 22){
-        if(pu.type === PU_BOMB) player.bombsMax = Math.min(player.bombsMax+1, 5);
-        if(pu.type === PU_FIRE) player.range = Math.min(player.range+1, 5);
-        if(pu.type === PU_SPEED) player.speed = Math.min(player.speed+0.35, 3.8);
+        if(pu.type === PU_BOMB){
+          player.roundExtraBombs = Math.min(player.roundExtraBombs + 1, 4);
+          addFloatText(player.px+TILE/2, player.py+TILE/2, '+1 БОМБА (РАУНД)', '#00f0ff');
+        } else if(pu.type === PU_FIRE){
+          player.range = Math.min(player.range + 1, 6);
+          addFloatText(player.px+TILE/2, player.py+TILE/2, '+1 ОГОНЬ 🔥', '#ffaa00');
+        } else if(pu.type === PU_SPEED){
+          player.speed = Math.min(player.speed + 0.35, 3.8);
+          addFloatText(player.px+TILE/2, player.py+TILE/2, 'СКОРОСТЬ ⚡', '#39ff14');
+        } else if(pu.type === PU_SHIELD){
+          player.hasShield = true;
+          addFloatText(player.px+TILE/2, player.py+TILE/2, 'ЩИТ 🛡️', '#38bdf8');
+        }
         score += 50;
-        addFloatText(player.px+TILE/2, player.py+TILE/2, '+50', '#39ff14');
         sfx('item');
+        haptic('success');
         powerups.splice(i, 1);
         updateHUD();
       }
@@ -419,7 +457,7 @@ function update(){
     const f = flames[i]; f.timer--;
     if(player.alive && player.invincible <= 0){
       if(Math.hypot(player.px+TILE/2 - (f.x*TILE+TILE/2), player.py+TILE/2 - (f.y*TILE+TILE/2)) < 22){
-        killHero();
+        hitHero();
       }
     }
     const pIdx = powerups.findIndex(p => p.revealed && p.x === f.x && p.y === f.y);
@@ -441,6 +479,7 @@ function update(){
       if(enemies.length === 0){
         portal.active = true;
         sfx('portal');
+        addFloatText(portal.x*TILE+TILE/2, portal.y*TILE+TILE/2, 'ПОРТАЛ ОТКРЫТ!', '#00f0ff');
       }
       continue;
     }
@@ -471,7 +510,7 @@ function update(){
 
     if(player.alive && player.invincible <= 0){
       if(Math.hypot(player.px+TILE/2 - (en.px+TILE/2), player.py+TILE/2 - (en.py+TILE/2)) < 20){
-        killHero();
+        hitHero();
       }
     }
   }
@@ -494,10 +533,26 @@ function update(){
   }
 }
 
+function hitHero(){
+  if(!player.alive || player.invincible > 0) return;
+  if(player.hasShield){
+    player.hasShield = false;
+    player.invincible = 60;
+    screenShake = 6;
+    sfx('zap');
+    haptic('medium');
+    addFloatText(player.px+TILE/2, player.py+TILE/2, 'ЩИТ РАЗБИТ!', '#00f0ff');
+    addParticles(player.px+TILE/2, player.py+TILE/2, '#00f0ff', 16);
+    return;
+  }
+  killHero();
+}
+
 function killHero(){
   player.alive = false;
   player.lives--;
   sfx('zap');
+  haptic('error');
   screenShake = 14;
   addParticles(player.px+TILE/2, player.py+TILE/2, '#00f0ff', 20);
   updateHUD();
@@ -515,13 +570,23 @@ function killHero(){
 
 function stageClear(){
   sfx('portal');
+  haptic('success');
   score += timeLeft * 15;
   level++;
+  
+  // Check perfect clear (no lives lost in this round)
+  const isPerfect = (player.lives >= livesAtRoundStart);
+  let bonusMsg = '';
+  if(isPerfect){
+    player.range = Math.min(player.range + 1, 6);
+    bonusMsg = `\n⭐ ИДЕАЛЬНО БЕЗ ПОТЕРИ ЖИЗНИ: Сила огня +1 (теперь ${player.range})!`;
+  }
+  
   updateHUD();
   gameState = 'CLEAR';
   clearInterval(timerId);
-  ovTitle.textContent = '⚡ СЕКТОР ЗАЧИЩЕН';
-  ovDesc.textContent = `Квантовый портал пройден! Переход в сектор ${level}...`;
+  ovTitle.textContent = isPerfect ? '⭐ ИДЕАЛЬНЫЙ СЕКТОР!' : '⚡ СЕКТОР ЗАЧИЩЕН';
+  ovDesc.textContent = `Квантовый портал пройден!${bonusMsg}\nПереход в сектор ${level}...`;
   startBtn.textContent = 'СЛЕДУЮЩИЙ СЕКТОР';
   overlay.classList.remove('hidden');
 }
@@ -596,14 +661,26 @@ function render(){
     ctx.fillText('PORT', px, py);
   }
 
-  // 3. Powerups
+  // 3. Powerups with glowing pulsing animation
   powerups.forEach(pu=>{
     if(!pu.revealed) return;
     const px = pu.x*TILE + TILE/2, py = pu.y*TILE + TILE/2;
+    const itemPulse = 1 + Math.sin(Date.now()*0.009)*0.15;
+    
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.scale(itemPulse, itemPulse);
+
+    // Glowing circle backing
+    ctx.fillStyle = 'rgba(0,240,255,0.2)';
+    ctx.beginPath(); ctx.arc(0, 0, 16, 0, Math.PI*2); ctx.fill();
+
     ctx.font = '22px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    if(pu.type === PU_BOMB) ctx.fillText('💣', px, py);
-    if(pu.type === PU_FIRE) ctx.fillText('🔥', px, py);
-    if(pu.type === PU_SPEED) ctx.fillText('⚡', px, py);
+    if(pu.type === PU_BOMB) ctx.fillText('💣', 0, 0);
+    else if(pu.type === PU_FIRE) ctx.fillText('🔥', 0, 0);
+    else if(pu.type === PU_SPEED) ctx.fillText('⚡', 0, 0);
+    else if(pu.type === PU_SHIELD) ctx.fillText('🛡️', 0, 0);
+    ctx.restore();
   });
 
   // 4. Bombs
@@ -658,6 +735,16 @@ function render(){
     if(player.invincible === 0 || Math.floor(player.invincible/5)%2 === 0){
       const px = player.px + TILE/2, py = player.py + TILE/2;
       ctx.save();
+
+      // Shield Aura Ring
+      if(player.hasShield){
+        ctx.strokeStyle = '#00f0ff';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(px, py, 19 + Math.sin(Date.now()*0.01)*2, 0, Math.PI*2);
+        ctx.stroke();
+      }
+
       ctx.fillStyle = '#00f0ff';
       ctx.beginPath(); ctx.arc(px, py, 13, 0, Math.PI*2); ctx.fill();
       ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
@@ -684,7 +771,7 @@ function render(){
 
   // 9. Floating Score Texts
   floatTexts.forEach(ft=>{
-    ctx.font = 'bold 14px monospace';
+    ctx.font = 'bold 13px monospace';
     ctx.fillStyle = ft.color;
     ctx.globalAlpha = ft.life / ft.maxLife;
     ctx.textAlign = 'center';
@@ -692,7 +779,7 @@ function render(){
   });
   ctx.globalAlpha = 1.0;
 
-  ctx.restore(); // Restore shake transform
+  ctx.restore();
 }
 
 function loop(){
@@ -712,7 +799,7 @@ function beginRound(){
     if(gameState === 'PLAY'){
       timeLeft--;
       updateHUD();
-      if(timeLeft <= 0) killHero();
+      if(timeLeft <= 0) hitHero();
     }
   }, 1000);
 }
@@ -720,7 +807,9 @@ function beginRound(){
 startBtn.onclick = () => {
   if(gameState === 'GAMEOVER'){
     level = 1; score = 0; player.lives = 3;
-    player.bombsMax = 1; player.range = 1; player.speed = 2.3;
+    player.baseBombs = 1; player.roundExtraBombs = 0;
+    player.range = 1; player.speed = 2.3;
+    player.hasShield = false;
   }
   beginRound();
 };
