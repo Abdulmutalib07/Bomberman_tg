@@ -22,8 +22,17 @@ from aiogram.types import (
     InputTextMessageContent
 )
 
-# Токен вашего бота от @BotFather (можно передать в BOT_TOKEN в переменных окружения)
-BOT_TOKEN = os.getenv("BOT_TOKEN", "9020300503:AAFxQka3X3BhsgeWeg_hv4DFVsdhhVc6TT0")
+# Автоматическая загрузка локального .env файла (если он существует)
+_env_path = Path(__file__).parent / ".env"
+if _env_path.exists():
+    for _line in _env_path.read_text().splitlines():
+        _line = _line.strip()
+        if _line and not _line.startswith("#") and "=" in _line:
+            _k, _v = _line.split("=", 1)
+            os.environ.setdefault(_k.strip(), _v.strip())
+
+# Токен бота (читается из .env или переменной окружения BOT_TOKEN)
+BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
 
 # Путь к файлу игры
 GAME_HTML_PATH = Path(__file__).parent / "index.html"
